@@ -93,6 +93,10 @@ func (m *AppModel) View() (viewOut string) {
 	}
 
 	boxWidth, _, isCompact := m.calculateLayout()
+	h := m.height
+	if h <= 0 {
+		h = 24
+	}
 
 	var defaultBanner string
 	if m.customBanner != "" {
@@ -156,7 +160,11 @@ func (m *AppModel) View() (viewOut string) {
 	}
 
 	var components []string
-	components = append(components, "", banner)
+	if !isCompact {
+		components = append(components, "", banner)
+	} else if h >= 16 {
+		components = append(components, banner)
+	}
 	if workspaceView != "" {
 		components = append(components, "", workspaceView)
 	}
@@ -164,7 +172,11 @@ func (m *AppModel) View() (viewOut string) {
 	if toastView != "" {
 		components = append(components, "", toastView)
 	}
-	components = append(components, "", status, footerDeck)
+	if h >= 14 {
+		components = append(components, "", status, footerDeck)
+	} else {
+		components = append(components, "", status)
+	}
 
 	console := lipgloss.JoinVertical(lipgloss.Center, components...)
 
@@ -175,6 +187,15 @@ func (m *AppModel) View() (viewOut string) {
 	safeH := m.height
 	if safeH < 10 {
 		safeH = 24
+	}
+
+	consoleW := lipgloss.Width(console)
+	consoleH := lipgloss.Height(console)
+	if safeW < consoleW {
+		safeW = consoleW
+	}
+	if safeH < consoleH {
+		safeH = consoleH
 	}
 
 	rawScreen := lipgloss.Place(safeW, safeH, lipgloss.Center, lipgloss.Center, console)

@@ -24,7 +24,16 @@ func (m *AppModel) executeCommandString(rawInput string) (tea.Model, tea.Cmd) {
 	m.historyDraft = ""
 	m.lastInputVal = ""
 
-	if inputStr == "" {
+	if inputStr == "" || inputStr == "/" {
+		m.statusMsg = "Komut için /help yazın veya açılan menüden bir komut seçin."
+		m.isError = false
+		return m, nil
+	}
+
+	cleanRaw := strings.TrimPrefix(inputStr, "/")
+	if strings.TrimSpace(cleanRaw) == "" {
+		m.statusMsg = "Komut için /help yazın veya açılan menüden bir komut seçin."
+		m.isError = false
 		return m, nil
 	}
 
@@ -55,6 +64,8 @@ func (m *AppModel) executeCommandString(rawInput string) (tea.Model, tea.Cmd) {
 
 	stages := pipeline.ParseExecutionLine(filtered)
 	if len(stages) == 0 {
+		m.statusMsg = "Geçersiz komut sözdizimi. Yardım için: /help"
+		m.isError = true
 		return m, nil
 	}
 
@@ -100,7 +111,12 @@ func (m *AppModel) executeCommandString(rawInput string) (tea.Model, tea.Cmd) {
 			argsSnapshot := stage.Args
 			pipeSnapshot := pipeIn
 
-			execFunc := func(th theme.ThemePalette, w, h int) string {
+			execFunc := func(th theme.ThemePalette, w, h int) (result string) {
+				defer func() {
+					if r := recover(); r != nil {
+						result = fmt.Sprintf("⚠️ Eklenti yürütme hatası (Panic): %v", r)
+					}
+				}()
 				ctx := &plugin.PluginContext{
 					Width:      w,
 					Height:     h,

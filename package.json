@@ -1,0 +1,12 @@
+{
+  "name": "mt-core-hypervisor",
+  "version": "1.0.0",
+  "description": "MT Core Terminal Hypervisor ile canlı kaynak kod değiştirici MTfix ve God Mode motoru",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "build": "go build -o mt-core main.go && mkdir -p .mt_bin && go build -o .mt_bin/mtfix plugins/mtfix.go",
+    "start": "node server.js"
+  },
+  "dependencies": {}
+}

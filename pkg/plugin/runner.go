@@ -71,6 +71,10 @@ func (dm *DynamicModule) runDaemon(ctx context.Context, host superuser.Superuser
 
 			w, h := host.GetTerminalDimensions()
 			cmd.Env = append(os.Environ(),
+				"PYTHONUNBUFFERED=1",
+				"FORCE_COLOR=1",
+				"NODE_DISABLE_COLORS=0",
+				"TERM=xterm-256color",
 				"MT_DAEMON=1",
 				"MT_SUPERUSER=1",
 				fmt.Sprintf("MT_WIDTH=%d", w),
@@ -193,6 +197,10 @@ func (dm *DynamicModule) View(ctx *PluginContext) (outView string) {
 	w, h := ctx.Host.GetTerminalDimensions()
 
 	cmd.Env = append(os.Environ(),
+		"PYTHONUNBUFFERED=1",
+		"FORCE_COLOR=1",
+		"NODE_DISABLE_COLORS=0",
+		"TERM=xterm-256color",
 		fmt.Sprintf("MT_INVOKED_CMD=%s", ctx.InvokedCmd),
 		fmt.Sprintf("MT_PIPE_INPUT=%s", pipeSnippet),
 		fmt.Sprintf("MT_WIDTH=%d", w),

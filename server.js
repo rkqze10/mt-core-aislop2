@@ -524,11 +524,25 @@ function executeCommand(cmdStr, cb) {
   ensureMtfixBinary((err, mtfixExec) => {
     let child;
     const env = Object.assign({}, process.env, {
+      PYTHONUNBUFFERED: '1',
+      FORCE_COLOR: '1',
+      NODE_DISABLE_COLORS: '0',
       MT_SUPERUSER: '1',
       MT_WIDTH: '120',
       MT_HEIGHT: '35',
       MT_THEME: currentTheme
     });
+
+    const findBin = (name, fallback) => {
+      if (process.env.PREFIX && fs.existsSync(path.join(process.env.PREFIX, 'bin', name))) {
+        return path.join(process.env.PREFIX, 'bin', name);
+      }
+      return fallback || name;
+    };
+
+    const pyExec = findBin('python3', 'python3');
+    const nodeExec = findBin('node', 'node');
+    const bashExec = findBin('bash', 'bash');
 
     if (mainCmd === 'mtfix' || mainCmd === 'god' || mainCmd === 'godmode' || mainCmd === 'fix' || mainCmd === 'patch') {
       const args = parts.slice(1);
@@ -548,23 +562,61 @@ function executeCommand(cmdStr, cb) {
     } else if (mainCmd === 'matrix') {
       const args = ['matrix'];
       child = spawn(mtfixExec, args, { cwd: ROOT_DIR, env });
-    } else if (mainCmd === 'godhelp') {
+    } else if (mainCmd === 'godhelp' || mainCmd === 'help') {
       const args = ['help'];
       child = spawn(mtfixExec, args, { cwd: ROOT_DIR, env });
-    } else if (mainCmd === 'help') {
-      child = spawn('go', ['run', 'main.go'], { cwd: ROOT_DIR, env });
+    } else if (mainCmd === 'canvas') {
+      child = spawn(bashExec, ['plugins/canvas.sh'].concat(parts.slice(1)), { cwd: ROOT_DIR, env });
+    } else if (mainCmd === 'chart_demo') {
+      child = spawn(pyExec, ['plugins/chart_demo.py'].concat(parts.slice(1)), { cwd: ROOT_DIR, env });
+    } else if (mainCmd === 'monitor') {
+      child = spawn(pyExec, ['plugins/monitor.py'].concat(parts.slice(1)), { cwd: ROOT_DIR, env });
+    } else if (mainCmd === 'stream_agent') {
+      child = spawn(pyExec, ['plugins/stream_agent.py'].concat(parts.slice(1)), { cwd: ROOT_DIR, env });
+    } else if (mainCmd === 'hello') {
+      child = spawn(pyExec, ['plugins/hello.py'].concat(parts.slice(1)), { cwd: ROOT_DIR, env });
+    } else if (mainCmd === 'superuser_demo') {
+      child = spawn(pyExec, ['plugins/superuser_demo.py'].concat(parts.slice(1)), { cwd: ROOT_DIR, env });
+    } else if (mainCmd === 'node_demo') {
+      child = spawn(nodeExec, ['plugins/node_demo.js'].concat(parts.slice(1)), { cwd: ROOT_DIR, env });
+    } else if (mainCmd === 'theme') {
+      if (parts.length > 1) {
+        child = spawn(mtfixExec, ['mutate', 'theme', parts[1]], { cwd: ROOT_DIR, env });
+      } else {
+        child = spawn(mtfixExec, ['mutate', 'theme'], { cwd: ROOT_DIR, env });
+      }
     } else {
       // Shell fallback
       const rawSh = cmdStr.startsWith('/') ? cmdStr.substring(1) : cmdStr;
-      child = spawn('bash', ['-c', rawSh], { cwd: ROOT_DIR, env });
+      child = spawn(bashExec, ['-c', rawSh], { cwd: ROOT_DIR, env });
     }
 
     let stdout = '';
     let stderr = '';
+    let done = false;
+
+    const timer = setTimeout(() => {
+      if (!done) {
+        done = true;
+        try { child.kill('SIGKILL'); } catch (e) {}
+        cb(null, {
+          output: ansiToHtml('⚠️ Komut zaman aşımına uğradı (10 saniye sınırı aşyldı).'),
+          toast: '⚠️ Zaman aşımı',
+          prompt: null,
+          status: null,
+          exitCode: 124
+        });
+      }
+    }, 10000);
+
     child.stdout.on('data', d => { stdout += d.toString(); });
     child.stderr.on('data', d => { stderr += d.toString(); });
 
     child.on('close', code => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+
       let toastMsg = null;
       let promptVal = null;
       let statusVal = null;

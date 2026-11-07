@@ -178,15 +178,21 @@ func (ke *KernelEngine) CheckAndReload(dirPath string) (bool, int) {
 		}
 	}
 
+	var initializedMods []*plugin.DynamicModule
+	for _, mod := range toUpdate {
+		if err := mod.Init(ke.host); err == nil {
+			initializedMods = append(initializedMods, mod)
+		}
+	}
+
 	ke.mu.Lock()
 	defer ke.mu.Unlock()
 
 	changed := false
-	for _, mod := range toUpdate {
+	for _, mod := range initializedMods {
 		if existing, exists := ke.dynamicMods[mod.SourcePath()]; exists && existing != nil {
 			_ = existing.Destroy()
 		}
-		_ = mod.Init(ke.host)
 		ke.dynamicMods[mod.SourcePath()] = mod
 		changed = true
 	}

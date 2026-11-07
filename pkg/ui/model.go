@@ -844,7 +844,7 @@ func (m *AppModel) RenderBarChart(data map[string]float64, title string, color s
 
 func (m *AppModel) StartWatchdog(ctx context.Context) {
 	go func() {
-		ticker := time.NewTicker(1200 * time.Millisecond)
+		ticker := time.NewTicker(3000 * time.Millisecond)
 		defer ticker.Stop()
 		for {
 			select {
